@@ -1,0 +1,7 @@
+# Copyright (c) 2021 Nordic Semiconductor ASA
+# Copyright (c) 2023 Leon Rinkel
+# SPDX-License-Identifier: Apache-2.0
+
+config BOARD_LUMEN
+	bool "lumen Board"
+	depends on SOC_NRF52840_QIAA
