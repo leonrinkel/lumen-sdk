@@ -18,3 +18,4 @@ manifest:
           - cmsis      # required by the ARM port
           - hal_nordic # required by the lumen board (Nordic based)
           - segger     # required for RTT debug logging
+          - tinycrypt

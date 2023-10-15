@@ -7,4 +7,7 @@ if BOARD_LUMEN
 config BOARD
 	default "lumen"
 
+config BT_CTLR
+	default BT
+
 endif # BOARD_LUMEN
