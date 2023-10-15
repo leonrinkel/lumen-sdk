@@ -5,6 +5,7 @@
  */
 
 #include <zephyr/kernel.h>
+#include <zephyr/sys_clock.h>
 #include <zephyr/device.h>
 #include <zephyr/drivers/led_strip.h>
 
@@ -51,6 +52,9 @@ int main(void)
 {
 	int err;
 	int j = 0;
+	k_timepoint_t till_heartbeat = sys_timepoint_calc(K_NO_WAIT);
+
+	printk("lumen example application %s\n", APP_VERSION_STRING);
 
 	if (!device_is_ready(strip)) {
 		printk("led strip device is not ready\n");
@@ -76,6 +80,13 @@ int main(void)
 		if (++j >= 256 * 5)
 		{
 			j = 0;
+		}
+
+		if (sys_timepoint_expired(till_heartbeat))
+		{
+			printk("hello world i'm still here %llu\n",
+				k_uptime_get());
+			till_heartbeat = sys_timepoint_calc(K_SECONDS(1));
 		}
 
 		k_sleep(K_MSEC(20));
