@@ -34,10 +34,11 @@ jobs:
             merged_${{ github.ref_name }}_${{ github.sha }}.hex
           mv lumen-sdk/twister-out/lumen/app.default/zephyr/app_update.bin \
             app_update_${{ github.ref_name }}_${{ github.sha }}.bin
-          ls -al > test.txt
 
       - name: Release
         uses: softprops/action-gh-release@v1
         if: startsWith(github.ref, 'refs/tags/')
         with:
-          files: test.txt
+          files: |
+            merged_${{ github.ref_name }}_${{ github.sha }}.hex
+            app_update_${{ github.ref_name }}_${{ github.sha }}.bin
