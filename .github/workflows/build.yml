@@ -26,3 +26,11 @@ jobs:
         working-directory: lumen-sdk
         run: |
           west twister -T app -v --inline-logs --integration
+
+      - name: Test
+        run: ls > test.txt
+      - name: Release
+        uses: softprops/action-gh-release@v1
+        if: startsWith(github.ref, 'refs/tags/')
+        with:
+          files: test.txt
