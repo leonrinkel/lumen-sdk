@@ -29,11 +29,10 @@ jobs:
           west twister -T app -v --inline-logs --integration
 
       - name: Release
-        working-directory: lumen-sdk
         uses: softprops/action-gh-release@v1
         with:
           files: |
-            twister-out/lumen/app.debug/zephyr/app_update.bin
-            twister-out/lumen/app.debug/zephyr/merged.hex
-            twister-out/lumen/app.default/zephyr/app_update.bin
-            twister-out/lumen/app.default/zephyr/merged.hex
+            lumen-sdk/twister-out/lumen/app.debug/zephyr/app_update.bin
+            lumen-sdk/twister-out/lumen/app.debug/zephyr/merged.hex
+            lumen-sdk/twister-out/lumen/app.default/zephyr/app_update.bin
+            lumen-sdk/twister-out/lumen/app.default/zephyr/merged.hex
