@@ -27,8 +27,15 @@ jobs:
         run: |
           west twister -T app -v --inline-logs --integration
 
-      - name: Test
-        run: ls > test.txt
+      - name: Prepare Release
+        if: startsWith(github.ref, 'refs/tags/')
+        run: |
+          mv lumen-sdk/twister-out/lumen/app.default/zephyr/merged.hex \
+            merged_${{ GITHUB_REF_NAME }}_${{ GITHUB_SHA }}.hex
+          mv lumen-sdk/twister-out/lumen/app.default/zephyr/app_update.bin \
+            app_update_${{ GITHUB_REF_NAME }}_${{ GITHUB_SHA }}.bin
+          ls -al > test.txt
+
       - name: Release
         uses: softprops/action-gh-release@v1
         if: startsWith(github.ref, 'refs/tags/')
