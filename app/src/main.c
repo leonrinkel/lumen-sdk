@@ -8,6 +8,7 @@
 #include <zephyr/sys_clock.h>
 #include <zephyr/device.h>
 #include <zephyr/drivers/led_strip.h>
+#include <zephyr/drivers/hwinfo.h>
 #include <zephyr/bluetooth/bluetooth.h>
 #include <zephyr/bluetooth/conn.h>
 #include <zephyr/bluetooth/uuid.h>
@@ -179,6 +180,46 @@ void color_wheel(uint8_t pos, uint8_t* r, uint8_t* g, uint8_t* b)
 	}
 }
 
+static int set_adv_name(void)
+{
+	int i;
+
+	const ssize_t device_id_len = 8;
+	uint8_t device_id[device_id_len];
+	ssize_t actual_device_id_len;
+
+	const char id_dict[] = \
+		"abcdefghijklmnopqrstuvwxyz" \
+		"ABCDEFGHIJKLMNOPQRSTUVWXYZ" \
+		"0123456789";
+	const size_t id_dict_len = strlen(id_dict);
+
+	char adv_name[CONFIG_BT_DEVICE_NAME_MAX + 1] = "Lumen ";
+	size_t adv_name_len = strlen(adv_name);
+
+	actual_device_id_len =
+		hwinfo_get_device_id(device_id, device_id_len);
+	if (actual_device_id_len < 0)
+	{
+		return actual_device_id_len;
+	}
+
+	for (
+		i = 0;
+		(i < actual_device_id_len) &&
+			(adv_name_len < CONFIG_BT_DEVICE_NAME_MAX);
+		i++
+	)
+	{
+		adv_name[adv_name_len++] =
+			id_dict[device_id[i] % id_dict_len];
+	}
+
+	adv_name[adv_name_len] = 0;
+
+	return bt_set_name(adv_name);
+}
+
 int main(void)
 {
 	int err;
@@ -200,6 +241,13 @@ int main(void)
 		return 0;
 	}
 	printk("bluetooth enabled\n");
+
+	err = set_adv_name();
+	if (err < 0)
+	{
+		printk("unable to set adv name (err %d)\n", err);
+		return 0;
+	}
 
 	err = bt_le_adv_start(BT_LE_ADV_CONN_NAME,
 		ad, ARRAY_SIZE(ad), NULL, 0);
