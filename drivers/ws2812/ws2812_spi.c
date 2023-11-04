@@ -12,7 +12,6 @@
 #include <zephyr/drivers/led_strip.h>
 
 #include <string.h>
-#include <math.h>
 
 #define LOG_LEVEL CONFIG_LED_STRIP_LOG_LEVEL
 #include <zephyr/logging/log.h>
@@ -24,6 +23,8 @@ LOG_MODULE_REGISTER(ws2812_spi);
 #include <zephyr/sys/math_extras.h>
 #include <zephyr/sys/util.h>
 #include <zephyr/dt-bindings/led/led.h>
+
+#include "rgbw.h"
 
 /* spi-one-frame and spi-zero-frame in DT are for 8-bit frames. */
 #define SPI_FRAME_BITS 8
@@ -93,49 +94,6 @@ static inline void ws2812_reset_delay(uint16_t delay)
 	k_usleep(delay);
 }
 
-/** RGB to RGBW conversion according to Wang et al. */
-void do_rgbw_conversion(
-	uint8_t* ro, uint8_t* go, uint8_t* bo, uint8_t* wo,
-	uint8_t ri, uint8_t gi, uint8_t bi,
-	uint8_t algo
-)
-{
-	float m = fmin(ri, fmin(gi, bi));
-	float M = fmax(ri, fmax(gi, bi));
-
-	float w;
-	switch (algo)
-	{
-	case 1:
-		w = m;
-		break;
-	case 2:
-		w = pow(m, 2);
-		break;
-	case 3:
-		w = -pow(m, 3) + pow(m, 2) + m;
-		break;
-	case 4:
-		w = (m / M >= 0.5) ? M :
-			(m * M) / (M - m);
-		break;
-	
-	default:
-		return;
-	}
-
-	float k = (w + M) / M;
-
-	float r = k * ri - w;
-	float g = k * gi - w;
-	float b = k * bi - w;
-
-	*wo = fmax(fmin(floor(w), 255), 0);
-	*ro = fmax(fmin(floor(r), 255), 0);
-	*go = fmax(fmin(floor(g), 255), 0);
-	*bo = fmax(fmin(floor(b), 255), 0);
-}
-
 static int ws2812_strip_update_rgb(const struct device *dev,
 				   struct led_rgb *pixels,
 				   size_t num_pixels)
@@ -166,10 +124,10 @@ static int ws2812_strip_update_rgb(const struct device *dev,
 		uint8_t j;
 
 		uint8_t ro, go, bo, wo;
-		do_rgbw_conversion(
-			&ro, &go, &bo, &wo,
-			pixels[i].r, pixels[i].g, pixels[i].b,
-			1
+		rgbw_conversion(
+			/* outs: */ &ro, &go, &bo, &wo,
+			/*  ins: */ pixels[i].r, pixels[i].g, pixels[i].b,
+			/* algo: */ 1
 		);
 
 		for (j = 0; j < cfg->num_colors; j++) {
