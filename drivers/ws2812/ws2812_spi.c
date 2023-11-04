@@ -127,7 +127,7 @@ static int ws2812_strip_update_rgb(const struct device *dev,
 		rgbw_conversion(
 			/* outs: */ &ro, &go, &bo, &wo,
 			/*  ins: */ pixels[i].r, pixels[i].g, pixels[i].b,
-			/* algo: */ 1
+			/* algo: */ 4
 		);
 
 		for (j = 0; j < cfg->num_colors; j++) {
