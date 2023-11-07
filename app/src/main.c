@@ -8,11 +8,11 @@
 #include <zephyr/sys_clock.h>
 #include <zephyr/device.h>
 #include <zephyr/drivers/led_strip.h>
-#include <zephyr/drivers/hwinfo.h>
 #include <zephyr/bluetooth/bluetooth.h>
 #include <zephyr/bluetooth/conn.h>
 #include <zephyr/bluetooth/uuid.h>
 #include <zephyr/bluetooth/gatt.h>
+#include <zephyr/settings/settings.h>
 
 #include <app_version.h>
 
@@ -180,45 +180,43 @@ void color_wheel(uint8_t pos, uint8_t* r, uint8_t* g, uint8_t* b)
 	}
 }
 
-static int set_adv_name(void)
+static void auth_passkey_display(struct bt_conn* conn, unsigned int passkey)
 {
-	int i;
-
-	const ssize_t device_id_len = 8;
-	uint8_t device_id[device_id_len];
-	ssize_t actual_device_id_len;
-
-	const char id_dict[] = \
-		"abcdefghijklmnopqrstuvwxyz" \
-		"ABCDEFGHIJKLMNOPQRSTUVWXYZ" \
-		"0123456789";
-	const size_t id_dict_len = strlen(id_dict);
-
-	char adv_name[CONFIG_BT_DEVICE_NAME_MAX + 1] = "Lumen ";
-	size_t adv_name_len = strlen(adv_name);
-
-	actual_device_id_len =
-		hwinfo_get_device_id(device_id, device_id_len);
-	if (actual_device_id_len < 0)
-	{
-		return actual_device_id_len;
-	}
-
-	for (
-		i = 0;
-		(i < actual_device_id_len) &&
-			(adv_name_len < CONFIG_BT_DEVICE_NAME_MAX);
-		i++
-	)
-	{
-		adv_name[adv_name_len++] =
-			id_dict[device_id[i] % id_dict_len];
-	}
-
-	adv_name[adv_name_len] = 0;
-
-	return bt_set_name(adv_name);
+	char addr[BT_ADDR_LE_STR_LEN];
+	bt_addr_le_to_str(bt_conn_get_dst(conn), addr, sizeof(addr));
+	printk("passkey for %s: %06u\n", addr, passkey);
 }
+
+static void auth_cancel(struct bt_conn* conn)
+{
+	char addr[BT_ADDR_LE_STR_LEN];
+	bt_addr_le_to_str(bt_conn_get_dst(conn), addr, sizeof(addr));
+	printk("pairing cancelled for %s\n", addr);
+}
+
+static void pairing_complete(struct bt_conn* conn, bool bonded)
+{
+	char addr[BT_ADDR_LE_STR_LEN];
+	bt_addr_le_to_str(bt_conn_get_dst(conn), addr, sizeof(addr));
+	printk("pairing completed for %s, bonded: %d\n", addr, bonded);
+}
+
+static void pairing_failed(struct bt_conn* conn, enum bt_security_err reason)
+{
+}
+
+static struct bt_conn_auth_cb conn_auth_callbacks =
+{
+	.passkey_display = auth_passkey_display,
+	.cancel = auth_cancel,
+	.pairing_confirm = NULL,
+};
+
+static struct bt_conn_auth_info_cb conn_auth_info_callbacks =
+{
+	.pairing_complete = pairing_complete,
+	.pairing_failed = pairing_failed,
+};
 
 int main(void)
 {
@@ -234,6 +232,23 @@ int main(void)
 		return 0;
 	}
 
+	err = bt_conn_auth_cb_register(&conn_auth_callbacks);
+	if (err < 0)
+	{
+		printk("failed to register auth cb (err %d)\n", err);
+		return 0;
+	}
+
+	err = bt_conn_auth_info_cb_register(&conn_auth_info_callbacks);
+	if (err < 0)
+	{
+		printk("failed to register auth info cb (err %d)\n", err);
+		return 0;
+	}
+
+	unsigned int passkey = 123456;
+	bt_passkey_set(passkey);
+
 	err = bt_enable(NULL);
 	if (err < 0)
 	{
@@ -242,11 +257,9 @@ int main(void)
 	}
 	printk("bluetooth enabled\n");
 
-	err = set_adv_name();
-	if (err < 0)
+	if (IS_ENABLED(CONFIG_SETTINGS))
 	{
-		printk("unable to set adv name (err %d)\n", err);
-		return 0;
+		settings_load();
 	}
 
 	err = bt_le_adv_start(BT_LE_ADV_CONN_NAME,
