@@ -133,17 +133,17 @@ static void connected(struct bt_conn* conn, uint8_t err)
 {
 	if (err)
 	{
-		printk("connection failed (err %d)\n", err);
+		LOG_WRN("connection failed (err %d)\n", err);
 	}
 	else
 	{
-		printk("connected\n");
+		LOG_INF("connected\n");
 	}
 }
 
 static void disconnected(struct bt_conn* conn, uint8_t reason)
 {
-	printk("disconnected (reason %d)\n", reason);
+	LOG_INF("disconnected (reason %d)\n", reason);
 }
 
 BT_CONN_CB_DEFINE(conn_callbacks) =
@@ -184,21 +184,21 @@ static void auth_passkey_display(struct bt_conn* conn, unsigned int passkey)
 {
 	char addr[BT_ADDR_LE_STR_LEN];
 	bt_addr_le_to_str(bt_conn_get_dst(conn), addr, sizeof(addr));
-	printk("passkey for %s: %06u\n", addr, passkey);
+	LOG_INF("passkey for %s: %06u\n", addr, passkey);
 }
 
 static void auth_cancel(struct bt_conn* conn)
 {
 	char addr[BT_ADDR_LE_STR_LEN];
 	bt_addr_le_to_str(bt_conn_get_dst(conn), addr, sizeof(addr));
-	printk("pairing cancelled for %s\n", addr);
+	LOG_INF("pairing cancelled for %s\n", addr);
 }
 
 static void pairing_complete(struct bt_conn* conn, bool bonded)
 {
 	char addr[BT_ADDR_LE_STR_LEN];
 	bt_addr_le_to_str(bt_conn_get_dst(conn), addr, sizeof(addr));
-	printk("pairing completed for %s, bonded: %d\n", addr, bonded);
+	LOG_INF("pairing completed for %s, bonded: %d\n", addr, bonded);
 }
 
 static void pairing_failed(struct bt_conn* conn, enum bt_security_err reason)
@@ -224,25 +224,25 @@ int main(void)
 	int j = 0;
 	k_timepoint_t till_heartbeat = sys_timepoint_calc(K_NO_WAIT);
 
-	printk("lumen example application %s\n", APP_VERSION_STRING);
+	LOG_INF("lumen example application %s\n", APP_VERSION_STRING);
 
 	if (!device_is_ready(strip))
 	{
-		printk("led strip device is not ready\n");
+		LOG_ERR("led strip device is not ready\n");
 		return 0;
 	}
 
 	err = bt_conn_auth_cb_register(&conn_auth_callbacks);
 	if (err < 0)
 	{
-		printk("failed to register auth cb (err %d)\n", err);
+		LOG_ERR("failed to register auth cb (err %d)\n", err);
 		return 0;
 	}
 
 	err = bt_conn_auth_info_cb_register(&conn_auth_info_callbacks);
 	if (err < 0)
 	{
-		printk("failed to register auth info cb (err %d)\n", err);
+		LOG_ERR("failed to register auth info cb (err %d)\n", err);
 		return 0;
 	}
 
@@ -252,10 +252,10 @@ int main(void)
 	err = bt_enable(NULL);
 	if (err < 0)
 	{
-		printk("bluetooth enable failed (err %d)\n", err);
+		LOG_ERR("bluetooth enable failed (err %d)\n", err);
 		return 0;
 	}
-	printk("bluetooth enabled\n");
+	LOG_INF("bluetooth enabled\n");
 
 	if (IS_ENABLED(CONFIG_SETTINGS))
 	{
@@ -266,10 +266,10 @@ int main(void)
 		ad, ARRAY_SIZE(ad), NULL, 0);
 	if (err < 0)
 	{
-		printk("failed to start advertising (err %d)\n", err);
+		LOG_ERR("failed to start advertising (err %d)\n", err);
 		return 0;
 	}
-	printk("started advertising\n");
+	LOG_INF("started advertising\n");
 
 	while (1)
 	{
@@ -287,7 +287,7 @@ int main(void)
 		err = led_strip_update_rgb(strip, pixels, STRIP_NUM_PIXELS);
 		if (err < 0)
 		{
-			printk("unable to update led strip (err %d)\n", err);
+			LOG_WRN("unable to update led strip (err %d)\n", err);
 		}
 
 		if (do_color_wheel && ++j >= 256 * 5)
@@ -297,7 +297,7 @@ int main(void)
 
 		if (sys_timepoint_expired(till_heartbeat))
 		{
-			printk("hello world i'm still here %llu\n",
+			LOG_INF("hello world i'm still here %llu\n",
 				k_uptime_get());
 			till_heartbeat = sys_timepoint_calc(K_SECONDS(1));
 		}
