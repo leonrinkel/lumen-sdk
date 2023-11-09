@@ -8,6 +8,7 @@
 #include <zephyr/sys_clock.h>
 #include <zephyr/device.h>
 #include <zephyr/drivers/led_strip.h>
+#include <zephyr/drivers/hwinfo.h>
 #include <zephyr/bluetooth/bluetooth.h>
 #include <zephyr/bluetooth/conn.h>
 #include <zephyr/bluetooth/uuid.h>
@@ -221,6 +222,10 @@ static struct bt_conn_auth_info_cb conn_auth_info_callbacks =
 int main(void)
 {
 	int err;
+	const ssize_t device_id_len = 4;
+	uint8_t device_id[device_id_len];
+	ssize_t actual_device_id_len;
+	uint32_t passkey;
 	int j = 0;
 	k_timepoint_t till_heartbeat = sys_timepoint_calc(K_NO_WAIT);
 
@@ -246,7 +251,23 @@ int main(void)
 		return 0;
 	}
 
-	unsigned int passkey = 123456;
+	actual_device_id_len =
+		hwinfo_get_device_id(device_id, device_id_len);
+	if (actual_device_id_len < 0)
+	{
+		LOG_ERR("failed to get device id (err %d)\n", err);
+		return 0;
+	}
+
+	passkey = (
+			(uint32_t) (
+				(device_id[3] << 24) |
+				(device_id[2] << 16) |
+				(device_id[1] <<  8) |
+				(device_id[0] <<  0)
+			)
+		) % 1000000;
+	LOG_INF("setting passkey to %06u\n", passkey);
 	bt_passkey_set(passkey);
 
 	err = bt_enable(NULL);
